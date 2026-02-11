@@ -42,7 +42,7 @@ sudo pacman -S mpv
 ## Build
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Hell077/yMusic.git
 cd ymusic
 go build -o ymusic .
 ```
