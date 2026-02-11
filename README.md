@@ -18,12 +18,17 @@ Terminal UI client for Yandex Music.
 - Keyboard-driven navigation with vim-style keys
 - ESC as back navigation + overlay menu
 
-## Requirements
+## Install
 
-- **Go** 1.23+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Hell077/yMusic/main/install.sh | sh
+```
+
+This will download the latest release for your platform and install the `ymusic` binary.
+
+### Requirements
+
 - **mpv** (audio backend)
-
-### Install mpv
 
 ```bash
 # Fedora
@@ -39,11 +44,11 @@ brew install mpv
 sudo pacman -S mpv
 ```
 
-## Build
+### Build from source
 
 ```bash
 git clone https://github.com/Hell077/yMusic.git
-cd ymusic
+cd yMusic
 go build -o ymusic .
 ```
 
