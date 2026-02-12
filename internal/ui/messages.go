@@ -49,6 +49,12 @@ type LikeResultMsg struct {
 	Liked   bool
 }
 
+// Player control messages (from mouse clicks)
+type PlayPrevMsg struct{}
+type PlayNextMsg struct{}
+type TogglePauseMsg struct{}
+type SeekToMsg struct{ Position float64 }
+
 // UI
 type ErrorMsg struct{ Err error }
 type WindowSizeMsg struct {

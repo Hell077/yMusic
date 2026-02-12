@@ -39,6 +39,11 @@ func (m MyWaveModel) Update(msg tea.Msg) (MyWaveModel, tea.Cmd) {
 	case ErrorMsg:
 		m.err = msg.Err
 		m.loading = false
+	case tea.MouseMsg:
+		// Header: title(0) + blank(1), tracklist starts at row 2
+		if handled, cmd := m.trackList.HandleMouse(msg, 2); handled {
+			return m, cmd
+		}
 	case tea.KeyMsg:
 		if !m.focused {
 			return m, nil

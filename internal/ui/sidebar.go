@@ -39,7 +39,8 @@ func (m SidebarModel) Update(msg tea.Msg) (SidebarModel, tea.Cmd) {
 		return m, nil
 	}
 
-	if msg, ok := msg.(tea.KeyMsg); ok {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
 		switch msg.String() {
 		case "up", "k":
 			if m.cursor > 0 {
@@ -56,6 +57,37 @@ func (m SidebarModel) Update(msg tea.Msg) (SidebarModel, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+// HandleMouse processes mouse events. Returns whether handled and an optional command.
+func (m *SidebarModel) HandleMouse(msg tea.MouseMsg) (bool, tea.Cmd) {
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		if m.cursor > 0 {
+			m.cursor--
+		}
+		return true, nil
+	case tea.MouseButtonWheelDown:
+		if m.cursor < len(sidebarItems)-1 {
+			m.cursor++
+		}
+		return true, nil
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionPress {
+			return false, nil
+		}
+		// Layout: title=line 0, blank=line 1, items start at line 2
+		idx := msg.Y - 2
+		if idx < 0 || idx >= len(sidebarItems) {
+			return false, nil
+		}
+		m.cursor = idx
+		page := sidebarItems[idx].Page
+		return true, func() tea.Msg {
+			return NavigateMsg{Page: page}
+		}
+	}
+	return false, nil
 }
 
 func (m SidebarModel) View() string {

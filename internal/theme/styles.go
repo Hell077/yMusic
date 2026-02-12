@@ -15,6 +15,7 @@ type Styles struct {
 	Selected     lipgloss.Style
 	ListItem     lipgloss.Style
 	ListActive   lipgloss.Style
+	ListPlaying  lipgloss.Style
 	SidebarItem  lipgloss.Style
 	SidebarActive lipgloss.Style
 	PlayerBar    lipgloss.Style
@@ -71,6 +72,11 @@ func RefreshStyles() {
 			Foreground(t.Primary).
 			Background(t.Highlight).
 			PaddingLeft(1).
+			Bold(true),
+		ListPlaying: lipgloss.NewStyle().
+			Foreground(t.Primary).
+			Background(t.Surface).
+			PaddingLeft(2).
 			Bold(true),
 		SidebarItem: lipgloss.NewStyle().
 			Foreground(t.Foreground).

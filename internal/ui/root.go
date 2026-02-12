@@ -114,6 +114,44 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		if m.overlay.Visible() {
+			return m, nil
+		}
+		contentHeight := m.height - playerHeight
+		sidebarW := sidebarWidth + 1 // +1 for border
+
+		if msg.Y >= contentHeight {
+			// Player bar area
+			cmd := m.playerBar.HandleMouse(msg)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		} else if msg.X < sidebarW {
+			// Sidebar area
+			m.focus = FocusSidebar
+			m.updateFocus()
+			if handled, cmd := m.sidebar.HandleMouse(msg); handled {
+				cmds = append(cmds, cmd)
+			}
+		} else {
+			// Content area — adjust X for sidebar+border offset
+			m.focus = FocusContent
+			m.updateFocus()
+			adjusted := tea.MouseMsg(tea.MouseEvent{
+				X:      msg.X - sidebarW,
+				Y:      msg.Y,
+				Button: msg.Button,
+				Action: msg.Action,
+				Shift:  msg.Shift,
+				Alt:    msg.Alt,
+				Ctrl:   msg.Ctrl,
+			})
+			var cmd tea.Cmd
+			m.content, cmd = m.content.Update(adjusted)
+			cmds = append(cmds, cmd)
+		}
+
 	case tea.KeyMsg:
 		// Overlay captures all input when visible
 		if m.overlay.Visible() {
@@ -279,6 +317,23 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.queue.Set(msg.Queue, msg.Index)
 		cmds = append(cmds, m.playCurrentTrack())
 		m.content.RefreshQueue()
+
+	case PlayPrevMsg:
+		cmds = append(cmds, m.playPrev())
+
+	case PlayNextMsg:
+		cmds = append(cmds, m.playNext())
+
+	case TogglePauseMsg:
+		if m.player != nil {
+			m.player.TogglePause()
+		}
+
+	case SeekToMsg:
+		if m.player != nil {
+			pos := msg.Position * m.player.GetState().Duration
+			m.player.SeekAbsolute(pos)
+		}
 
 	case TrackURLMsg:
 		if m.player != nil {

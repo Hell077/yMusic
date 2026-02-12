@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"ymusic/internal/api"
 	"ymusic/internal/theme"
 )
@@ -136,7 +137,7 @@ func (m TrackListModel) View() string {
 		if i == m.cursor && m.focused {
 			b.WriteString(theme.S.ListActive.Render(line))
 		} else if t.ID == m.playingID {
-			b.WriteString(theme.S.Primary.Render(line))
+			b.WriteString(theme.S.ListPlaying.Render(line))
 		} else {
 			b.WriteString(theme.S.ListItem.Render(line))
 		}
@@ -144,4 +145,55 @@ func (m TrackListModel) View() string {
 	}
 
 	return b.String()
+}
+
+func (m *TrackListModel) ScrollUp(n int) {
+	for i := 0; i < n; i++ {
+		m.MoveUp()
+	}
+}
+
+func (m *TrackListModel) ScrollDown(n int) {
+	for i := 0; i < n; i++ {
+		m.MoveDown()
+	}
+}
+
+// HandleMouse processes mouse events. offsetY is the Y position of the tracklist
+// within the parent view. Returns whether the event was handled and an optional command.
+func (m *TrackListModel) HandleMouse(msg tea.MouseMsg, offsetY int) (bool, tea.Cmd) {
+	if len(m.tracks) == 0 {
+		return false, nil
+	}
+
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		m.ScrollUp(3)
+		return true, nil
+	case tea.MouseButtonWheelDown:
+		m.ScrollDown(3)
+		return true, nil
+	case tea.MouseButtonLeft:
+		if msg.Action != tea.MouseActionPress {
+			return false, nil
+		}
+		// row 0 within tracklist is the header, rows 1+ are tracks
+		row := msg.Y - offsetY
+		if row < 1 {
+			return false, nil
+		}
+		trackIdx := m.offset + row - 1 // -1 for header
+		if trackIdx < 0 || trackIdx >= len(m.tracks) {
+			return false, nil
+		}
+		m.cursor = trackIdx
+		// Play the clicked track
+		t := m.tracks[trackIdx]
+		tracks := m.tracks
+		idx := trackIdx
+		return true, func() tea.Msg {
+			return PlayTrackMsg{Track: t, Queue: tracks, Index: idx}
+		}
+	}
+	return false, nil
 }

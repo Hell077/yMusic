@@ -33,7 +33,16 @@ func (m *QueueViewModel) Refresh() {
 }
 
 func (m QueueViewModel) Update(msg tea.Msg) (QueueViewModel, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyMsg); ok && m.focused {
+	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		// Header: title(0) + now-playing(1) + blank(2), tracklist starts at row 3
+		if handled, cmd := m.trackList.HandleMouse(msg, 3); handled {
+			return m, cmd
+		}
+	case tea.KeyMsg:
+		if !m.focused {
+			return m, nil
+		}
 		switch msg.String() {
 		case "up", "k":
 			m.trackList.MoveUp()

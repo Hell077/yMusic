@@ -56,6 +56,14 @@ func (m CollectionModel) Update(msg tea.Msg) (CollectionModel, tea.Cmd) {
 	case ErrorMsg:
 		m.err = msg.Err
 		m.loading = false
+	case tea.MouseMsg:
+		// Only forward to tracklist when on the Liked tab
+		// Header: title(0) + blank(1) + tabs(2) + blank(3), tracklist starts at row 4
+		if m.tab == CollTabLiked {
+			if handled, cmd := m.trackList.HandleMouse(msg, 4); handled {
+				return m, cmd
+			}
+		}
 	case tea.KeyMsg:
 		if !m.focused {
 			return m, nil

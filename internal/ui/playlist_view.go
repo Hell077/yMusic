@@ -43,6 +43,11 @@ func (m PlaylistViewModel) Update(msg tea.Msg) (PlaylistViewModel, tea.Cmd) {
 	case ErrorMsg:
 		m.err = msg.Err
 		m.loading = false
+	case tea.MouseMsg:
+		// Header: title(0) + info(1) + blank(2), tracklist starts at row 3
+		if handled, cmd := m.trackList.HandleMouse(msg, 3); handled {
+			return m, cmd
+		}
 	case tea.KeyMsg:
 		if !m.focused {
 			return m, nil

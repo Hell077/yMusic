@@ -167,6 +167,11 @@ func (m *ContentModel) RefreshQueue() {
 
 func (m *ContentModel) SetPlayingTrack(id string) {
 	m.queueView.trackList.SetPlaying(id)
+	m.playlistView.trackList.SetPlaying(id)
+	m.albumView.trackList.SetPlaying(id)
+	m.artistView.trackList.SetPlaying(id)
+	m.collection.trackList.SetPlaying(id)
+	m.myWave.trackList.SetPlaying(id)
 }
 
 func (m *ContentModel) SearchModel() *SearchModel {
