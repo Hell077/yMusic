@@ -57,6 +57,10 @@ func (m QueueViewModel) Update(msg tea.Msg) (QueueViewModel, tea.Cmd) {
 					return PlayTrackMsg{Track: *t, Queue: tracks, Index: idx}
 				}
 			}
+		case "a":
+			if cmd := m.trackList.GoToAlbumCmd(); cmd != nil {
+				return m, cmd
+			}
 		}
 	}
 	return m, nil

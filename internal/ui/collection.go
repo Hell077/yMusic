@@ -57,11 +57,33 @@ func (m CollectionModel) Update(msg tea.Msg) (CollectionModel, tea.Cmd) {
 		m.err = msg.Err
 		m.loading = false
 	case tea.MouseMsg:
-		// Only forward to tracklist when on the Liked tab
-		// Header: title(0) + blank(1) + tabs(2) + blank(3), tracklist starts at row 4
+		// Header: title(0) + blank(1) + tabs(2) + blank(3), content starts at row 4
 		if m.tab == CollTabLiked {
 			if handled, cmd := m.trackList.HandleMouse(msg, 4); handled {
 				return m, cmd
+			}
+		} else {
+			switch msg.Button {
+			case tea.MouseButtonWheelUp:
+				if m.cursor > 0 {
+					m.cursor--
+				}
+				return m, nil
+			case tea.MouseButtonWheelDown:
+				max := m.currentListLen() - 1
+				if max >= 0 && m.cursor < max {
+					m.cursor++
+				}
+				return m, nil
+			case tea.MouseButtonLeft:
+				if msg.Action != tea.MouseActionPress {
+					return m, nil
+				}
+				idx := msg.Y - 4
+				if idx >= 0 && idx < m.currentListLen() {
+					m.cursor = idx
+					return m, m.handleEnter()
+				}
 			}
 		}
 	case tea.KeyMsg:
@@ -99,6 +121,12 @@ func (m CollectionModel) Update(msg tea.Msg) (CollectionModel, tea.Cmd) {
 			}
 		case "enter":
 			return m, m.handleEnter()
+		case "a":
+			if m.tab == CollTabLiked {
+				if cmd := m.trackList.GoToAlbumCmd(); cmd != nil {
+					return m, cmd
+				}
+			}
 		}
 	}
 	return m, nil

@@ -116,7 +116,9 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.MouseMsg:
 		if m.overlay.Visible() {
-			return m, nil
+			var cmd tea.Cmd
+			m.overlay, cmd = m.overlay.Update(msg)
+			return m, cmd
 		}
 		contentHeight := m.height - playerHeight
 		sidebarW := sidebarWidth + 1 // +1 for border
@@ -334,6 +336,33 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			pos := msg.Position * m.player.GetState().Duration
 			m.player.SeekAbsolute(pos)
 		}
+
+	case SeekRelativeMsg:
+		if m.player != nil {
+			m.player.Seek(msg.Seconds)
+		}
+
+	case VolumeChangeMsg:
+		if m.player != nil {
+			st := m.player.GetState()
+			vol := st.Volume + msg.Delta
+			if vol < 0 {
+				vol = 0
+			}
+			if vol > 100 {
+				vol = 100
+			}
+			m.player.SetVolume(vol)
+			m.cfg.Volume = int(vol)
+			m.cfg.Save()
+		}
+
+	case ToggleShuffleMsg:
+		m.queue.ToggleShuffle()
+		m.content.RefreshQueue()
+
+	case CycleRepeatMsg:
+		m.queue.CycleRepeat()
 
 	case TrackURLMsg:
 		if m.player != nil {

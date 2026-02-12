@@ -86,6 +86,18 @@ func (m TrackListModel) Selected() *api.Track {
 func (m TrackListModel) Cursor() int { return m.cursor }
 func (m TrackListModel) Tracks() []api.Track { return m.tracks }
 
+// GoToAlbumCmd returns a command to navigate to the selected track's album.
+func (m TrackListModel) GoToAlbumCmd() tea.Cmd {
+	t := m.Selected()
+	if t == nil || len(t.Albums) == 0 {
+		return nil
+	}
+	albumID := t.Albums[0].ID
+	return func() tea.Msg {
+		return navigateAlbumMsg{id: albumID}
+	}
+}
+
 func (m TrackListModel) View() string {
 	if len(m.tracks) == 0 {
 		return theme.S.Muted.Render("  No tracks")
@@ -177,23 +189,42 @@ func (m *TrackListModel) HandleMouse(msg tea.MouseMsg, offsetY int) (bool, tea.C
 		if msg.Action != tea.MouseActionPress {
 			return false, nil
 		}
-		// row 0 within tracklist is the header, rows 1+ are tracks
 		row := msg.Y - offsetY
 		if row < 1 {
 			return false, nil
 		}
-		trackIdx := m.offset + row - 1 // -1 for header
+		trackIdx := m.offset + row - 1
 		if trackIdx < 0 || trackIdx >= len(m.tracks) {
 			return false, nil
 		}
 		m.cursor = trackIdx
-		// Play the clicked track
 		t := m.tracks[trackIdx]
 		tracks := m.tracks
 		idx := trackIdx
 		return true, func() tea.Msg {
 			return PlayTrackMsg{Track: t, Queue: tracks, Index: idx}
 		}
+	case tea.MouseButtonRight:
+		if msg.Action != tea.MouseActionPress {
+			return false, nil
+		}
+		row := msg.Y - offsetY
+		if row < 1 {
+			return false, nil
+		}
+		trackIdx := m.offset + row - 1
+		if trackIdx < 0 || trackIdx >= len(m.tracks) {
+			return false, nil
+		}
+		m.cursor = trackIdx
+		t := m.tracks[trackIdx]
+		if len(t.Albums) > 0 {
+			albumID := t.Albums[0].ID
+			return true, func() tea.Msg {
+				return navigateAlbumMsg{id: albumID}
+			}
+		}
+		return true, nil
 	}
 	return false, nil
 }

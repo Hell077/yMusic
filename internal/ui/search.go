@@ -65,6 +65,47 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 	case ErrorMsg:
 		m.err = msg.Err
 		m.loading = false
+	case tea.MouseMsg:
+		if m.result != nil && !m.inputFocused {
+			switch msg.Button {
+			case tea.MouseButtonWheelUp:
+				if m.cursor > 0 {
+					m.cursor--
+				}
+				return m, nil
+			case tea.MouseButtonWheelDown:
+				max := m.currentListLen() - 1
+				if max >= 0 && m.cursor < max {
+					m.cursor++
+				}
+				return m, nil
+			case tea.MouseButtonLeft:
+				if msg.Action != tea.MouseActionPress {
+					return m, nil
+				}
+				// Layout: title(0) + blank(1) + searchbar(2) + blank(3) + tabs(4) + blank(5), items at row 6
+				idx := msg.Y - 6
+				if idx >= 0 && idx < m.currentListLen() {
+					m.cursor = idx
+					return m, m.handleEnter()
+				}
+			case tea.MouseButtonRight:
+				if msg.Action != tea.MouseActionPress {
+					return m, nil
+				}
+				idx := msg.Y - 6
+				if idx >= 0 && (m.tab == SearchTabAll || m.tab == SearchTabTracks) && idx < len(m.tracks) {
+					m.cursor = idx
+					t := m.tracks[idx]
+					if len(t.Albums) > 0 {
+						albumID := t.Albums[0].ID
+						return m, func() tea.Msg {
+							return navigateAlbumMsg{id: albumID}
+						}
+					}
+				}
+			}
+		}
 	case tea.KeyMsg:
 		if !m.focused {
 			return m, nil
@@ -118,6 +159,16 @@ func (m SearchModel) Update(msg tea.Msg) (SearchModel, tea.Cmd) {
 			}
 		case "enter":
 			return m, m.handleEnter()
+		case "a":
+			if (m.tab == SearchTabAll || m.tab == SearchTabTracks) && m.cursor < len(m.tracks) {
+				t := m.tracks[m.cursor]
+				if len(t.Albums) > 0 {
+					albumID := t.Albums[0].ID
+					return m, func() tea.Msg {
+						return navigateAlbumMsg{id: albumID}
+					}
+				}
+			}
 		}
 	}
 	return m, nil

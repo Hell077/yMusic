@@ -62,7 +62,30 @@ func (m OverlayModel) Update(msg tea.Msg) (OverlayModel, tea.Cmd) {
 		return m, nil
 	}
 
-	if msg, ok := msg.(tea.KeyMsg); ok {
+	switch msg := msg.(type) {
+	case tea.MouseMsg:
+		if msg.Button == tea.MouseButtonLeft && msg.Action == tea.MouseActionPress {
+			// Overlay box: width=40+4(border+padding), centered
+			boxWidth := 44
+			contentLines := m.currentLen() + 2 // title + blank + items
+			boxHeight := contentLines + 4       // border + padding
+			boxX := (m.width - boxWidth) / 2
+			boxY := (m.height - boxHeight) / 2
+			// Content starts at boxY+2 (border+padding), title is line 0, blank is line 1, items at 2+
+			relY := msg.Y - boxY - 2 // relative to content start
+			relX := msg.X - boxX
+			if relX < 0 || relX >= boxWidth || relY < 0 {
+				// Click outside overlay — close it
+				m.Close()
+				return m, nil
+			}
+			itemIdx := relY - 2 // title(0) + blank(1), items start at 2
+			if itemIdx >= 0 && itemIdx < m.currentLen() {
+				m.cursor = itemIdx
+				return m, m.handleEnter()
+			}
+		}
+	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
 			if m.view != OverlayMain {

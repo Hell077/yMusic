@@ -54,6 +54,10 @@ type PlayPrevMsg struct{}
 type PlayNextMsg struct{}
 type TogglePauseMsg struct{}
 type SeekToMsg struct{ Position float64 }
+type SeekRelativeMsg struct{ Seconds float64 }
+type VolumeChangeMsg struct{ Delta float64 }
+type ToggleShuffleMsg struct{}
+type CycleRepeatMsg struct{}
 
 // UI
 type ErrorMsg struct{ Err error }

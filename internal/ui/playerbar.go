@@ -17,11 +17,13 @@ type PlayerBarModel struct {
 	width    int
 
 	// Click area X ranges (set during View)
-	prevX    [2]int // [start, end)
-	playX    [2]int
-	nextX    [2]int
-	barX     [2]int
-	barWidth int
+	prevX      [2]int // [start, end)
+	playX      [2]int
+	nextX      [2]int
+	barX       [2]int
+	barWidth   int
+	shuffleX   [2]int
+	repeatX    [2]int
 }
 
 func NewPlayerBar(queue *Queue) PlayerBarModel {
@@ -87,12 +89,14 @@ func (m *PlayerBarModel) View() string {
 	} else {
 		shuffleIcon = theme.S.Muted.Render("[S]")
 	}
-	repeatIcon := theme.S.Muted.Render(m.queue.RepeatMode().Icon())
+	repeatIconStr := m.queue.RepeatMode().Icon()
+	var repeatIcon string
 	if m.queue.RepeatMode() != RepeatOff {
-		repeatIcon = theme.S.Primary.Render(m.queue.RepeatMode().Icon())
+		repeatIcon = theme.S.Primary.Render(repeatIconStr)
+	} else {
+		repeatIcon = theme.S.Muted.Render(repeatIconStr)
 	}
 
-	// Layout: " ⏮ ▶ ⏭  Title - Artist  ━━━───  2:34/5:47  ♪70%  [S] [R]"
 	// Track X positions for click areas (account for 1-char padding from PlayerBar style)
 	x := 1 // PlayerBar has Padding(0,1) so content starts at x=1
 	m.prevX = [2]int{x, x + 2}
@@ -105,14 +109,25 @@ func (m *PlayerBarModel) View() string {
 		playIcon, title, artist, bar, timeStr, vol, shuffleIcon, repeatIcon,
 	)
 
-	// Calculate bar X position within the rendered string
-	// " ⏮ ▶ ⏭  Title - Artist  " then bar starts
-	// We find it by counting: " ⏮ X ⏭  " = 10, then title+artist+sep
-	// Simpler: compute from known prefix length
+	// Calculate bar X position
 	prefix := fmt.Sprintf(" ⏮ %s ⏭  %s - %s  ",
 		playIcon, truncate(m.track.Title, 30), truncate(m.track.ArtistName(), 25))
 	prefixLen := len([]rune(prefix))
 	m.barX = [2]int{1 + prefixLen, 1 + prefixLen + barWidth}
+
+	// Calculate suffix positions from the end
+	// suffix: "  %s  %s %s %s" = timeStr, vol, shuffleIcon, repeatIcon
+	suffix := fmt.Sprintf("  %s  %s %s %s", timeStr, vol, "[S]", repeatIconStr)
+	suffixLen := len([]rune(suffix))
+	endX := m.width - 1 // padding right
+	suffixStart := endX - suffixLen
+
+	// [S] and repeat icon positions
+	// suffix layout: "  time  vol [S] [R]"
+	volStr := fmt.Sprintf("  %s  %s ", timeStr, vol)
+	volLen := len([]rune(volStr))
+	m.shuffleX = [2]int{suffixStart + volLen, suffixStart + volLen + 3}
+	m.repeatX = [2]int{suffixStart + volLen + 4, suffixStart + volLen + 4 + len([]rune(repeatIconStr))}
 
 	return theme.S.PlayerBar.Width(m.width).Render(info)
 }
@@ -122,14 +137,26 @@ func (m *PlayerBarModel) HandleMouse(msg tea.MouseMsg) tea.Cmd {
 	if m.track == nil {
 		return nil
 	}
-	if msg.Action != tea.MouseActionPress {
-		return nil
-	}
-	if msg.Button != tea.MouseButtonLeft {
-		return nil
-	}
 
 	x := msg.X
+
+	// Wheel: on progress bar = seek, elsewhere = volume
+	switch msg.Button {
+	case tea.MouseButtonWheelUp:
+		if x >= m.barX[0] && x < m.barX[1] {
+			return func() tea.Msg { return SeekRelativeMsg{Seconds: 5} }
+		}
+		return func() tea.Msg { return VolumeChangeMsg{Delta: 5} }
+	case tea.MouseButtonWheelDown:
+		if x >= m.barX[0] && x < m.barX[1] {
+			return func() tea.Msg { return SeekRelativeMsg{Seconds: -5} }
+		}
+		return func() tea.Msg { return VolumeChangeMsg{Delta: -5} }
+	}
+
+	if msg.Action != tea.MouseActionPress || msg.Button != tea.MouseButtonLeft {
+		return nil
+	}
 
 	if x >= m.prevX[0] && x < m.prevX[1] {
 		return func() tea.Msg { return PlayPrevMsg{} }
@@ -149,6 +176,12 @@ func (m *PlayerBarModel) HandleMouse(msg tea.MouseMsg) tea.Cmd {
 			pos = 1
 		}
 		return func() tea.Msg { return SeekToMsg{Position: pos} }
+	}
+	if x >= m.shuffleX[0] && x < m.shuffleX[1] {
+		return func() tea.Msg { return ToggleShuffleMsg{} }
+	}
+	if x >= m.repeatX[0] && x < m.repeatX[1] {
+		return func() tea.Msg { return CycleRepeatMsg{} }
 	}
 
 	return nil

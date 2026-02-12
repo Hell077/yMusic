@@ -37,6 +37,32 @@ func (m HomeModel) Update(msg tea.Msg) (HomeModel, tea.Cmd) {
 	case ErrorMsg:
 		m.err = msg.Err
 		m.loading = false
+	case tea.MouseMsg:
+		switch msg.Button {
+		case tea.MouseButtonWheelUp:
+			if m.cursor > 0 {
+				m.cursor--
+			}
+			return m, nil
+		case tea.MouseButtonWheelDown:
+			if m.cursor < len(m.playlists)-1 {
+				m.cursor++
+			}
+			return m, nil
+		case tea.MouseButtonLeft:
+			if msg.Action != tea.MouseActionPress {
+				return m, nil
+			}
+			// Layout: title(0) + blank(1) + subtitle(2) + blank(3), items at row 4
+			idx := msg.Y - 4
+			if idx >= 0 && idx < len(m.playlists) {
+				m.cursor = idx
+				p := m.playlists[idx].Data
+				return m, func() tea.Msg {
+					return navigatePlaylistMsg{uid: p.UID, kind: p.Kind}
+				}
+			}
+		}
 	case tea.KeyMsg:
 		if !m.focused {
 			return m, nil
