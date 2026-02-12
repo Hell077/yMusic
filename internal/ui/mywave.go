@@ -32,8 +32,15 @@ func (m MyWaveModel) Update(msg tea.Msg) (MyWaveModel, tea.Cmd) {
 	case RadioTracksMsg:
 		m.loading = false
 		m.batchID = msg.BatchID
+		seen := make(map[string]bool, len(m.tracks))
+		for _, t := range m.tracks {
+			seen[t.ID] = true
+		}
 		for _, st := range msg.Tracks {
-			m.tracks = append(m.tracks, st.Track)
+			if !seen[st.Track.ID] {
+				m.tracks = append(m.tracks, st.Track)
+				seen[st.Track.ID] = true
+			}
 		}
 		m.trackList.SetTracks(m.tracks)
 	case ErrorMsg:
